@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <title>SafeCircle — Real-time Family Safety</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brandmark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <b>SafeCircle</b>
+          <span>Live family safety</span>
+        </div>
+      </div>
+      
+      <nav aria-label="Main navigation">
+        <button class="nav active" data-view="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span>Live Map</span>
+        </button>
+        <button class="nav" data-view="zones">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          <span>Safe Zones</span>
+        </button>
+        <button class="nav" data-view="alerts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Alerts</span>
+          <i id="alertBadge">0</i>
+        </button>
+        <button class="nav" data-view="members">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Members</span>
+        </button>
+      </nav>
+      
+      <div class="privacy">
+        <div class="privacy-icon">🔒</div>
+        <div>
+          <b>Private circle</b>
+          <span>Only approved members see shared live locations. Data never leaves your devices.</span>
+        </div>
+      </div>
+      
+      <div class="profile">
+        <div class="avatar blue" id="profileAvatar">AA</div>
+        <div>
+          <b id="profileName">You</b>
+          <span id="profileRole">Circle admin · Live</span>
+        </div>
+      </div>
+    </aside>
+    
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">REAL-TIME PROTOTYPE</p>
+          <h1 id="viewTitle">Live safety dashboard</h1>
+        </div>
+        <div class="header-actions">
+          <span class="live" id="connectionStatus">
+            <i></i> <span id="statusText">Connecting…</span>
+          </span>
+          <button class="secondary" id="locateBtn" title="Use device GPS">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            My location
+          </button>
+          <button class="sos" id="sosBtn">SOS</button>
+        </div>
+      </header>
+      
+      <section id="dashboard" class="view active">
+        <div class="metric-row">
+          <article class="metric">
+            <span>Circle members</span>
+            <b id="memberCount">0</b>
+            <small id="sharingCount">0 sharing now</small>
+          </article>
+          <article class="metric">
+            <span>Inside safe zones</span>
+            <b id="insideCount">0</b>
+            <small id="zoneSummary">—</small>
+          </article>
+          <article class="metric">
+            <span>Open alerts</span>
+            <b id="openAlerts">0</b>
+            <small>Live events</small>
+          </article>
+          <article class="metric">
+            <span>Last sync</span>
+            <b id="lastSync">—</b>
+            <small id="accuracyInfo">GPS ready</small>
+          </article>
+        </div>
+        
+        <div class="dashboard-grid">
+          <section class="map-card">
+            <div class="card-head">
+              <div>
+                <h2>Family map</h2>
+                <p>Live positions · real GPS when available</p>
+              </div>
+              <div class="map-tools">
+                <button id="fitBtn" title="Fit all markers">Fit all</button>
+                <button id="pauseBtn" title="Pause live updates">Pause</button>
+              </div>
+            </div>
+            <div id="map"></div>
+            <div class="map-key">
+              <span><i class="dot online"></i>Online</span>
+              <span><i class="ring"></i>Safe zone</span>
+              <span><i class="dot alert-dot"></i>Needs attention</span>
+            </div>
+          </section>
+          
+          <aside class="members-panel">
+            <div class="card-head">
+              <div>
+                <h2>Members</h2>
+                <p>Live device status</p>
+              </div>
+              <button class="icon-btn" id="addMemberBtn" title="Invite member">＋</button>
+            </div>
+            <div id="memberList" class="member-list"></div>
+          </aside>
+        </div>
+        
+        <section class="activity-card">
+          <div class="card-head">
+            <div>
+              <h2>Recent activity</h2>
+              <p>Geofence, SOS & battery events</p>
+            </div>
+            <button class="text-btn" data-jump="alerts">View all</button>
+          </div>
+          <div id="activityPreview" class="activity-list"></div>
+        </section>
+      </section>
+      
+      <section id="zones" class="view">
+        <div class="section-toolbar">
+          <p>Create circular boundaries. You get notified only on real entry/exit transitions.</p>
+          <button class="primary" id="addZoneBtn">Add safe zone</button>
+        </div>
+        <div class="split">
+          <div class="panel">
+            <h2>Configured zones</h2>
+            <div id="zoneList"></div>
+          </div>
+          <div class="panel">
+            <h2>How detection works</h2>
+            <ol class="steps">
+              <li><b>Receive location</b><span>Real GPS coordinates, accuracy & timestamp from the device.</span></li>
+              <li><b>Measure distance</b><span>Haversine formula from zone centre (metres).</span></li>
+              <li><b>Compare state</b><span>Only inside ↔ outside transitions create alerts.</span></li>
+              <li><b>Notify circle</b><span>Authorized members see the event instantly.</span></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+      
+      <section id="alerts" class="view">
+        <div class="section-toolbar">
+          <p>High-priority SOS, safe-zone transitions and device status events.</p>
+          <button class="secondary" id="clearAlertsBtn">Mark all read</button>
+        </div>
+        <div class="panel">
+          <div id="allActivities" class="activity-list full"></div>
+        </div>
+      </section>
+      
+      <section id="members" class="view">
+        <div class="section-toolbar">
+          <p>Trusted-circle access is explicit and revocable. Locations update in real time.</p>
+          <button class="primary" id="inviteBtn">Invite member</button>
+        </div>
+        <div class="members-grid" id="membersGrid"></div>
+      </section>
+    </main>
+  </div>
+  
+  <dialog id="sosDialog">
+    <form method="dialog">
+      <div class="dialog-icon danger">!</div>
+      <h2>Send emergency SOS?</h2>
+      <p>This will create a high-priority alert with your latest live location and notify all circle members.</p>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary">Cancel</button>
+        <button value="confirm" class="sos">Send SOS now</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <dialog id="zoneDialog">
+    <form method="dialog" id="zoneForm">
+      <div class="dialog-icon">◎</div>
+      <h2>Create a safe zone</h2>
+      <label>Zone name<input id="zoneName" value="Library" required placeholder="e.g. Home, School"></label>
+      <label>Radius (metres)<input id="zoneRadius" type="number" min="50" max="5000" value="300" required></label>
+      <p class="hint">The zone will be centred on the current map centre. Drag the map first if needed.</p>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary">Cancel</button>
+        <button value="confirm" class="primary">Create zone</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <dialog id="inviteDialog">
+    <form method="dialog">
+      <div class="dialog-icon">＋</div>
+      <h2>Invite to family circle</h2>
+      <label>Name<input type="text" id="inviteName" placeholder="Member name" required></label>
+      <label>Email (optional)<input type="email" id="inviteEmail" placeholder="member@example.com"></label>
+      <p class="hint">In this prototype a demo member is added with a live simulated position near you. Real multi-device sharing would use a secure backend.</p>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary">Cancel</button>
+        <button value="confirm" class="primary">Add member</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <script src="vendor/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
